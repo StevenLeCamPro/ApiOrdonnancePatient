@@ -18,7 +18,6 @@ function UploadOrdonnance({ onMedicamentsExtracted }) {
 
     const handleFileUpload = async (event) => {
         event.preventDefault(); // Empêche le rechargement de la page
-
         if (!file) return; // Si aucun fichier n'est sélectionné, on quitte
 
         setLoading(true); // Active le loader immédiatement
@@ -32,8 +31,8 @@ function UploadOrdonnance({ onMedicamentsExtracted }) {
                 const pdf = await pdfjsLib.getDocument(pdfData).promise;
 
                 console.log(`PDF chargé avec ${pdf.numPages} pages.`);
-
                 const extractedTexts = [];
+                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const viewport = page.getViewport({ scale: 2 });

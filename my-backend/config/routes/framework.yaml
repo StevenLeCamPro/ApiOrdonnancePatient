@@ -2,3 +2,10 @@ when@dev:
     _errors:
         resource: '@FrameworkBundle/Resources/config/routing/errors.xml'
         prefix: /_error
+
+# cors:
+#     paths:
+#         '^/api/':
+#             allow_origin: ['*']
+#             allow_methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS']
+#             allow_headers: ['Content-Type', 'Authorization']
