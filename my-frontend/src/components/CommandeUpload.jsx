@@ -6,6 +6,24 @@ import axios from 'axios';
 // Charger le worker pour pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
+export const handleValidateCommande = async (commandeId) => {
+    try {
+        await axios.post(`/api/commande/validate/${commandeId}`);
+        console.log('Commande validée avec succès. Stock mis à jour.');
+    } catch (err) {
+        console.error('Erreur lors de la validation de la commande.', err);
+    }
+};
+
+export const handleDeleteCommande = async (commandeId) => {
+    try {
+        await axios.delete(`/api/commande/delete/${commandeId}`);
+        console.log('Commande supprimée avec succès.');
+    } catch (err) {
+        console.error('Erreur lors de la suppression de la commande.', err);
+    }
+};
+
 function CommandeUpload() {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -19,50 +37,56 @@ function CommandeUpload() {
     };
 
     const handleFileUpload = async (event) => {
-        event.preventDefault();
+        event.preventDefault(); // Empêche le rechargement de la page
         if (!file) return;
-    
+
         setLoading(true);
         setError(null);
         setSuccessMessage(null);
-    
+
         try {
             const fileReader = new FileReader();
             fileReader.onload = async () => {
                 const pdfData = new Uint8Array(fileReader.result);
                 const pdf = await pdfjsLib.getDocument(pdfData).promise;
-    
+
                 const extractedTexts = [];
+                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const viewport = page.getViewport({ scale: 2 });
-    
+
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
-    
-                    await page.render({ canvasContext: context, viewport }).promise;
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport,
+                    };
+                    await page.render(renderContext).promise;
+
                     const imageData = canvas.toDataURL('image/png');
-    
+                    console.log(`Analyse de la page ${i} en cours...`);
+
                     const result = await Tesseract.recognize(imageData, 'fra', {
                         logger: (m) => console.log(m),
                     });
-    
-                    extractedTexts.push(result.data.text.normalize('NFC'));
+
+                    const extractedText = result.data.text;
+                    const normalizedText = extractedText.normalize('NFC');
+                    extractedTexts.push(normalizedText);
                 }
-    
+
                 const fullText = extractedTexts.join('\n');
                 console.log('Texte extrait complet :', fullText);
-    
-                const response = await axios.post('/api/commande/create', { text: fullText });
-                if (response.status === 200) {
-                    setCommandeId(response.data.commande_id);
-                    setMedicaments(response.data.medicaments);
-                    setSuccessMessage('Commande créée avec succès.');
-                } else {
-                    setError('Erreur côté serveur.');
-                }
+
+                const response = await axios.post('api/commande/create', { text: fullText });
+                setMedicaments(response.data.medicaments);
+                setCommandeId(response.data.commandeId);
+
+                setSuccessMessage('Demande traitée avec succès.');
             };
     
             fileReader.readAsArrayBuffer(file);
@@ -73,28 +97,6 @@ function CommandeUpload() {
             setLoading(false);
         }
     };
-
-    // const handleValidateCommande = async () => {
-    //     try {
-    //         await axios.post(`/api/commande/validate/${commandeId}`);
-    //         setSuccessMessage('Commande validée avec succès. Stock mis à jour.');
-    //     } catch (err) {
-    //         setError('Erreur lors de la validation de la commande.');
-    //         console.error(err);
-    //     }
-    // };
-
-    // const handleDeleteCommande = async () => {
-    //     try {
-    //         await axios.delete(`/api/commande/delete/${commandeId}`);
-    //         setSuccessMessage('Commande supprimée avec succès.');
-    //         setCommandeId(null);
-    //         setMedicaments([]);
-    //     } catch (err) {
-    //         setError('Erreur lors de la suppression de la commande.');
-    //         console.error(err);
-    //     }
-    // };
 
     return (
         <div>
@@ -118,8 +120,6 @@ function CommandeUpload() {
                             </li>
                         ))}
                     </ul>
-                    <button onClick={handleValidateCommande}>Valider la commande</button>
-                    <button onClick={handleDeleteCommande}>Supprimer la commande</button>
                 </div>
             )}
         </div>

@@ -82,7 +82,7 @@ function UploadOrdonnance({ onMedicamentsExtracted }) {
 
     return (
         <div>
-            <h2>Uploader une ordonnance</h2>
+            <h2>Envoyer le fichier fournisseur</h2>
             <form onSubmit={handleFileUpload}>
                 <input type="file" accept=".pdf" onChange={handleFileChange} />
                 <button type="submit">Envoyer le fichier</button>

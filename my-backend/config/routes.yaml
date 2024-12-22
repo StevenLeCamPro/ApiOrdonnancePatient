@@ -4,9 +4,4 @@ controllers:
         namespace: App\Controller
     type: attribute
 
-# Exemple correct
-api_ordonnance_process:
-    path: /api/ordonnance/process
-    controller: App\Controller\OrdonnanceController::process
-    methods: POST
 

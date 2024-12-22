@@ -30,7 +30,7 @@ class OrdonnanceController extends AbstractController
         }
 
         foreach ($lines as $line) {
-            if (preg_match('/^([\p{L}\p{M}\'\s\-]+)\s+\(([\d\.]+(?:mg|g|ml|mI|Ul|µg))\):\s+(.*)\s+\[Stock:\s*(\d+)\]\s+\[Prix:\s*([\d\.]+)\]$/iu', $line, $matches)) {
+            if (preg_match('/^([\p{L}\p{M}\'\s\-]+)\s+\(([\d\.]+(?:mg|g|ml|mI|mL|Ul|µg))\):\s+(.*)\s+\[Stock:\s*(\d+)\]\s+\[Prix:\s*([\d\.]+)\]$/iu', $line, $matches)) {
                 $nom = trim($matches[1]);
                 $dosage = trim($matches[2]);
                 $instructions = trim($matches[3]);

@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-        secure: false,
+        target: 'http://127.0.0.1:8000', // Adresse du backend
+        changeOrigin: true, // Modifier l'origine de l'en-tête Host pour correspondre au backend
+        secure: false, // Nécessaire si vous utilisez HTTPS auto-signé
       },
     },
   },
