@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UploadOrdonnance from './components/UploadOrdonnance';
+import CommandeUpload from './components/CommandeUpload';
 
 function App() {
   const [commandes, setCommandes] = useState([]);
@@ -80,7 +80,7 @@ function App() {
   return (
     <div>
       <h1>Gestion des Commandes</h1>
-      <UploadOrdonnance onMedicamentsExtracted={handleMedicamentsExtracted} />
+      <CommandeUpload onMedicamentsExtracted={handleMedicamentsExtracted} />
       
       {loading && <p>Chargement des commandes...</p>}
 
