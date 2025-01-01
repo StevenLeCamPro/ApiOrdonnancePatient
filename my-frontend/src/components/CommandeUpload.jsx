@@ -85,7 +85,6 @@ function CommandeUpload() {
                 const response = await axios.post('api/commande/create', { text: fullText });
                 setMedicaments(response.data.medicaments);
                 setCommandeId(response.data.commandeId);
-
                 setSuccessMessage('Demande traitée avec succès.');
             };
     
@@ -111,16 +110,17 @@ function CommandeUpload() {
             {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
 
             {commandeId && (
-                <div>
-                    <h3>Commande ID: {commandeId}</h3>
-                    <ul>
-                        {medicaments.map((med, index) => (
-                            <li key={index}>
-                                {med.nom} ({med.dosage}) - Quantité : {med.quantite}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                   <div>
+                   <h3>Commande ID: {commandeId}</h3>
+                   <ul>
+                       {medicaments.map((med, index) => (
+                           <li key={index}>
+                               {med.nom} ({med.dosage}) - Quantité : {med.quantite} - Prix unitaire : {med.prix_unitaire} €
+                           </li>
+                       ))}
+                   </ul>
+                   <h4>Prix total : {response.data.prix_total} €</h4> {/* Afficher le prix total */}
+               </div>
             )}
         </div>
     );

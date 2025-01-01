@@ -41,16 +41,7 @@ function App() {
   return (
     <div>
       <h1>Gestion des Commandes</h1>
-      
-      {/* Bouton pour afficher l'interface d'upload d'ordonnance */}
-      <button onClick={() => document.getElementById('upload-ordonnance').scrollIntoView({ behavior: 'smooth' })}>
-        Télécharger une ordonnance
-      </button>
-      
-      {/* Bouton pour afficher l'interface de commande */}
-      <button onClick={() => document.getElementById('commande-upload').scrollIntoView({ behavior: 'smooth' })}>
-        Gérer les commandes
-      </button>
+
 
       {/* Section Upload Ordonnance */}
       <div id="upload-ordonnance" style={{ marginTop: '20px' }}>
@@ -79,21 +70,26 @@ function App() {
           width: '300px',
         }}
       >
-        <h3>Commande ID: {commande.id}</h3>
+       <h3>Commande ID: {commande.id}</h3>
+        <h5>Patient : {commande.patient}</h5>
         <h5>Médicaments :</h5>
         <ul>
-          {Array.isArray(commande.medicament) && commande.medicament.length > 0 ? (
-            commande.medicament.map((medicament, index) => (
-              <li key={index}>
-                 - Quantité: {medicament.quantite}
-              </li>
-            ))
-          ) : (
-            <li>Aucun médicament trouvé pour cette commande.</li>
-          )}
+            {commande.quantites && Object.keys(commande.quantites).length > 0 ? (
+                Object.entries(commande.quantites).map((medicament, index) => (
+                    <li key={index}>
+                        {medicament[1].nom} {medicament[1].dosage} - Quantité : {medicament[1].quantite}
+                        - Prix unitaire : {medicament[1].prix} €
+                    </li>
+                ))
+            ) : (
+                <li>Aucun médicament trouvé pour cette commande.</li>
+            )}
         </ul>
+        <h4>Prix total : {commande.prix_total ? commande.prix_total.toFixed(2) : 'Non calculé'} €</h4>
         <button onClick={() => handleValidateCommande(commande.id)}>Valider</button>
         <button onClick={() => handleDeleteCommande(commande.id)}>Supprimer</button>
+
+
       </div>
     ))
   ) : (

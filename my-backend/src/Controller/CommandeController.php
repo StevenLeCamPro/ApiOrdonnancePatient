@@ -31,6 +31,8 @@ class CommandeController extends AbstractController
 
             $lines = explode("\n", $data['text']);
             $medicaments = [];
+            $prixTotal = 0; // Initialiser le prix total
+
             foreach ($lines as $line) {
                 if (preg_match('/^([\p{L}\p{M}\'\s\-]+)\s+\(([\d\.]+(?:mg|g|ml|mI|mL|Ul|µg))\)\s*\[Quantité:\s*(\d+)\]$/iu', $line, $matches)) {
                     $medicaments[] = [
@@ -51,81 +53,104 @@ class CommandeController extends AbstractController
             $commande->setPatientName('Patient inconnu');
             $commande->setCreatedAt(new \DateTimeImmutable());
 
-            // Pas de modification de stock ici, juste la préparation de la commande
             $quantitesMeds = []; // Tableau pour stocker les quantités des médicaments
+            $medicamentsDetails = []; // Tableau pour stocker les détails des médicaments avec prix
 
             foreach ($medicaments as $med) {
-                // Trouver le médicament dans la base de données par son nom et son dosage
-                $medicament = $this->em->getRepository(Medicament::class)->findOneBy(['nom' => $med['nom'], 'dosage' => $med['dosage']]);
+                // Rechercher le médicament dans la base de données par nom et dosage
+                $medicament = $this->em->getRepository(Medicament::class)->findOneBy([
+                    'nom' => $med['nom'],
+                    'dosage' => $med['dosage']
+                ]);
 
                 if ($medicament) {
                     // Ajouter le médicament à la commande
                     $commande->getProducts()->add($medicament);
 
-                    // Ajouter la quantité au tableau
-                    $quantitesMeds[$med['nom']] = $med['quantite'];
+                    // Ajouter la quantité et d'autres détails au tableau
+                    $quantitesMeds[] = [
+                        'nom' => $med['nom'],
+                        'dosage' => $med['dosage'],
+                        'quantite' => $med['quantite'],
+                        'prix' => $medicament->getPrix(), // Prix du médicament
+                    ];
+
+                    // Ajouter les détails du médicament pour la réponse
+                    $medicamentsDetails[] = [
+                        'nom' => $med['nom'],
+                        'dosage' => $med['dosage'],
+                        'quantite' => $med['quantite'],
+                        'prix' => $medicament->getPrix(), // Prix du médicament
+                    ];
+
+                    // Calculer le prix total de la commande
+                    $prixTotal += $medicament->getPrix() * $med['quantite'];
                 } else {
-                    throw new \Exception("Médicament non trouvé: {$med['nom']} ({$med['dosage']})");
+                    throw new \Exception("Médicament non trouvé : {$med['nom']} ({$med['dosage']})");
                 }
             }
 
-            // Ajouter les quantités associées à la commande
-            $commande->setQuantite($quantitesMeds); // Suppose que vous avez un champ de type JSON ou équivalent
+            $commande->setQuantite($quantitesMeds);
+            $commande->setPrixTotal($prixTotal); // Stocker le prix total dans la commande
 
-            // Persister la commande sans modifier le stock pour l'instant
+            $this->logger->info('Réponse API : ', [
+                'commande_id' => $commande->getId(),
+                'medicaments' => $medicamentsDetails, // Utiliser le tableau détaillé avec les prix
+                'prix_total' => $prixTotal,
+            ]);
+
             $this->em->persist($commande);
             $this->em->flush();
 
             return new JsonResponse([
                 'commande_id' => $commande->getId(),
-                'medicaments' => $medicaments,
+                'medicaments' => $medicamentsDetails, // Inclure les détails des médicaments avec prix
+                'prix_total' => $prixTotal, // Inclure le prix total dans la réponse
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Erreur lors de la création de la commande : ' . $e->getMessage());
             return new JsonResponse(['error' => $e->getMessage()], 500);
         }
     }
+ // Route pour récupérer toutes les commandes
+ #[Route('/list', methods: ['GET'])]
+ public function getCommandes(): JsonResponse
+ {
+     $commandes = $this->em->getRepository(Commande::class)->findAll();
+     $data = [];
 
+     foreach ($commandes as $commande) {
+         $data[] = [
+             'id' => $commande->getId(),
+             'patient' => $commande->getPatientName(),
+             'quantites' => $commande->getQuantite(),
+             'prix_total' => $commande->getPrixTotal(),
+             // Ajoutez ici d'autres informations si nécessaire
+         ];
+     }
 
+     return new JsonResponse($data);
+ }
 
-    // Route pour récupérer toutes les commandes
-    #[Route('/list', methods: ['GET'])]
-    public function getCommandes(): JsonResponse
-    {
-        $commandes = $this->em->getRepository(Commande::class)->findAll();
-        $data = [];
+ // Route pour récupérer une commande spécifique
+ #[Route('/{id}', methods: ['GET'])]
+ public function getCommande(int $id): JsonResponse
+ {
+     $commande = $this->em->getRepository(Commande::class)->find($id);
 
-        foreach ($commandes as $commande) {
-            $data[] = [
-                'id' => $commande->getId(),
-                'patient' => $commande->getPatientName(),
-                'quantites' => $commande->getQuantite(),
-                // Ajoutez ici d'autres informations si nécessaire
-            ];
-        }
+     if (!$commande) {
+         return new JsonResponse(['message' => 'Commande non trouvée'], 404);
+     }
 
-        return new JsonResponse($data);
-    }
+     $data = [
+         'id' => $commande->getId(),
+         'quantites' => $commande->getQuantite(),
+         'prix_unitaire' => $commande->getPrixTotal(),
+         // Ajoutez d'autres informations si nécessaire
+     ];
 
-    // Route pour récupérer une commande spécifique
-    #[Route('/{id}', methods: ['GET'])]
-    public function getCommande(int $id): JsonResponse
-    {
-        $commande = $this->em->getRepository(Commande::class)->find($id);
-
-        if (!$commande) {
-            return new JsonResponse(['message' => 'Commande non trouvée'], 404);
-        }
-
-        $data = [
-            'id' => $commande->getId(),
-            'quantites' => $commande->getQuantite(),
-            // Ajoutez d'autres informations si nécessaire
-        ];
-
-        return new JsonResponse($data);
-    }
-
+     return new JsonResponse($data);
+ }
     // Route pour valider une commande
     #[Route('/validate/{id}', methods: ['POST'])]
     public function validateCommande(int $id): JsonResponse
@@ -140,9 +165,12 @@ class CommandeController extends AbstractController
 
             // Vérifier les stocks et mettre à jour
             $quantitesMeds = $commande->getQuantite();
-            foreach ($quantitesMeds as $nomMedicament => $quantite) {
+            foreach ($quantitesMeds as $med) {
                 // Trouver le médicament dans la base de données
-                $medicament = $this->em->getRepository(Medicament::class)->findOneBy(['nom' => $nomMedicament]);
+                $medicament = $this->em->getRepository(Medicament::class)->findOneBy([
+                    'nom' => $med['nom'],
+                    'dosage' => $med['dosage']
+                ]);
 
                 if ($medicament) {
                     // Stock actuel du médicament
@@ -150,21 +178,21 @@ class CommandeController extends AbstractController
 
                     // Vérifier si la quantité demandée est disponible en tenant compte du stock de sécurité
                     $stockSecurite = 10;
-                    if ($quantite > ($stockActuel - $stockSecurite)) {
-                        throw new \Exception("Stock insuffisant pour le médicament: {$nomMedicament}. Disponible: {$stockActuel}, demandé: {$quantite}, stock de sécurité: {$stockSecurite}");
+                    if ($med['quantite'] > ($stockActuel - $stockSecurite)) {
+                        throw new \Exception("Stock insuffisant pour le médicament: {$med['nom']}. Disponible: {$stockActuel}, demandé: {$med['quantite']}, stock de sécurité: {$stockSecurite}");
                     }
 
                     // Réduire le stock du médicament
-                    $medicament->setStock($stockActuel - $quantite);
+                    $medicament->setStock($stockActuel - $med['quantite']);
                 } else {
-                    throw new \Exception("Médicament non trouvé: {$nomMedicament}");
+                    throw new \Exception("Médicament non trouvé: {$med['nom']}");
                 }
             }
 
-            
             $this->em->persist($commande);
             $this->em->flush();
 
+            // Supprimer la commande après validation
             $this->em->remove($commande);
             $this->em->flush();
 

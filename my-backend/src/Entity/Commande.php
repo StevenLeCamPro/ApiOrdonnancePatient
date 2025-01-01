@@ -31,6 +31,9 @@ class Commande
     #[ORM\Column(type: Types::JSON)]
     private array $quantite = [];
 
+    #[ORM\Column]
+    private ?float $prixTotal = null;
+
     public function __construct()
     {
         $this->products = new ArrayCollection();
@@ -103,6 +106,18 @@ class Commande
     public function setQuantite(array $quantite): static
     {
         $this->quantite = $quantite;
+
+        return $this;
+    }
+
+    public function getPrixTotal(): ?float
+    {
+        return $this->prixTotal;
+    }
+
+    public function setPrixTotal(float $prixTotal): static
+    {
+        $this->prixTotal = $prixTotal;
 
         return $this;
     }
